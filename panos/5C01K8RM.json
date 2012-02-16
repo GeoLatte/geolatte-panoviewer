@@ -1,0 +1,22 @@
+
+    {
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates": [164160.3393, 214107.4581]
+        },
+        "properties": {
+            "imageId": "5C01K8RM",
+            "recordedAt": "2010-04-07T11:32:28.0100000+02:00",
+            "height": "{null=12.970439889420142, system=TAW}",
+            "latitudePrecision": "0.027",
+            "longitudePrecision": "0.033",
+            "heightPrecision": "0.037",
+            "orientation": "-0.157",
+            "orientationPrecision": "0.009",
+            "groundLevelOffset": "2",
+            "recorderDirection": "65.7195429996567",
+            "productType": "Cyclorama"
+        },
+        "id": "imageId_5C01K8RM"
+    },
