@@ -25,17 +25,15 @@ Copyright (c) 2012, Geovise BVBA
 /* Author: Karel Maesen, Geovise BVBA */
 
 
-//TODO -- extra events: start-draw, end-draw :: zodat client progressbar kan tekenen.
-
 var PanoViewer = function() {
 	var self = {
-		ZOOM_STEP : 0.2, //default zoom-step for mouse wheel events.
-		viewContext : null, //the 2D context for the images
-		viewElement : null, //HTML element for the canvas.
-		img : null, // image source for the panorama
-		pov : {yaw: 0.0, //view angle in horizontal plane 
-				 pitch: 0.0, //view angle in vertical plane
-				 zoom: 1.0, //zoom factor
+		ZOOM_STEP : 0.2,		//default zoom-step for mouse wheel events.
+		viewContext : null, 	//the 2D context for the images
+		viewElement : null, 	//HTML element for the canvas.
+		img : null, 			// image source for the panorama
+		pov : {yaw: 0.0, 		//view angle in horizontal plane 
+				 pitch: 0.0, 	//view angle in vertical plane
+				 zoom: 1.0, 	//zoom factor
 				 },		
 		startXY : null,
 		isPan: false,
@@ -43,8 +41,9 @@ var PanoViewer = function() {
 		povStart: [],
 		imageInfo:{},		
 		listeners: {
-			'view-update':[]
-		},
+			'view-update':[],
+			'image-load':[]
+		},		
 		init: function(canvas) {
 			//create the canvas context
 			this.viewElement = canvas;
@@ -69,18 +68,24 @@ var PanoViewer = function() {
 		vFov : function() {
 			return (self.viewElement.height*self.imageInfo.yResolution)/self.pov.zoom;
 		},							 
-		loadImageSrc : function(url){
+		loadImageSrc : function(url, pov){
 			this.img = new Image();
-			this.img.src = url;			
-			this.img.addEventListener('load', function(){												
-				self.imageInfo.width = this.naturalWidth;
-				self.imageInfo.height = this.naturalHeight;
-				self.imageInfo.xResolution = 360 / self.imageInfo.width;
-				self.imageInfo.yResolution = 180 / self.imageInfo.height;
-				self.pov.yaw = 0;
-				self.pov.pitch = 0;																						
+			this.img.src = url;						
+			this.img.addEventListener('load', function(){
+				//notify listeners that image is loaded
+				self.fireEvent('image-load');												
+				if (pov) {
+					self.copyPov(pov, self.pov);
+				}			
+				self.initImageInfo(this);																										
 				self.viewImage();					
 				}, false); 		
+		},
+		initImageInfo : function(imageSrc){
+			self.imageInfo.width = imageSrc.naturalWidth;
+			self.imageInfo.height = imageSrc.naturalHeight;
+			self.imageInfo.xResolution = 360 / self.imageInfo.width;
+			self.imageInfo.yResolution = 180 / self.imageInfo.height;
 		},
 		viewImage : function(){						
 			var sourceTopLeft = self.getSourceTopLeft();
@@ -130,11 +135,14 @@ var PanoViewer = function() {
 			return [sx,sy];
 		},
 		setPov : function(newPov) {
-			if (newPov.yaw) self.pov.yaw = self.normalizeX(newPov.yaw);
-			if (newPov.pitch) self.pov.pitch = self.clampY(newPov.pitch); 
-			if (newPov.zoom) self.pov.zoom = newPov.zoom; 
+			self.copyPov(newPov, self.pov); 
 			self.viewImage();				
-		},		
+		},
+		copyPov : function(srcPov, destPov){
+			if (srcPov.yaw) destPov.yaw =  self.normalizeX(srcPov.yaw);
+			if (srcPov.pitch) destPov.pitch = self.clampY(srcPov.pitch); 
+			if (srcPov.zoom) destPov.zoom = srcPov.zoom;
+		},				
 		on : function(ev, listener){ //registers eventlisteners
 			self.listeners[ev].push(listener);
 		},
