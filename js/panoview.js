@@ -144,10 +144,10 @@ var PanoViewer = function() {
 			var povStart = {yaw : self.pov.yaw, pitch : self.pov.pitch};
 			var moveHandler = function(ev) {
 				ev.preventDefault();
-				var dx = ev.clientX - panStart.x;
-				var dy = ev.clientY - panStart.y;
-				self.pov.yaw = self.normalizeX(povStart.yaw - self.imageInfo.xResolution*dx);
-				self.pov.pitch = self.clampY(povStart.pitch + self.imageInfo.yResolution*dy);
+				var dyaw = (ev.clientX - panStart.x)*self.currentDegreesPerPixelX();
+				var dpitch = (ev.clientY - panStart.y)*self.currentDegreesPerPixelY();
+				self.pov.yaw = self.normalizeX(povStart.yaw - dyaw);
+				self.pov.pitch = self.clampY(povStart.pitch + dpitch);
 				self.drawImage();			
 			};
 			var removeListener = function(){
@@ -187,6 +187,12 @@ var PanoViewer = function() {
 			if (x > 180) return x - 360;
 			return x;
 		},
+		currentDegreesPerPixelX : function(){
+			return self.imageInfo.xResolution/self.pov.zoom;			 	
+		},
+		currentDegreesPerPixelY : function(){
+			return self.imageInfo.yResolution/self.pov.zoom;
+		},
 		//Ensures that all y-values are clamped so 
 		//that the view-port never exceeds [-90,90]
 		clampY : function(y){
@@ -196,7 +202,10 @@ var PanoViewer = function() {
 			return y;
 		},
 		zoomClamp : function(zoom) {
-			if (zoom < 0.1) return 0.1;
+			var minZoomX = self.viewElement.width/self.imageInfo.width;
+			var minZoomY = self.viewElement.height/self.imageInfo.height;
+			var minZoom = Math.max(minZoomX, minZoomY); 
+			if (zoom < minZoom) return minZoom;
 			if (zoom > 10) return 10;
 			return zoom;
 		},
