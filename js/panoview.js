@@ -25,26 +25,21 @@ Copyright (c) 2012, Geovise BVBA
 /* Author: Karel Maesen, Geovise BVBA */
 
 
-//TODO -- extra events: start-draw, end-draw :: zodat client progressbar kan tekenen.
-
 var PanoViewer = function() {
 	var self = {
-		ZOOM_STEP : 0.2, //default zoom-step for mouse wheel events.
-		viewContext : null, //the 2D context for the images
-		viewElement : null, //HTML element for the canvas.
-		img : null, // image source for the panorama
-		pov : {yaw: 0.0, //view angle in horizontal plane 
-				 pitch: 0.0, //view angle in vertical plane
-				 zoom: 1.0, //zoom factor
+		ZOOM_STEP : 0.2,		//default zoom-step for mouse wheel events.
+		viewContext : null, 	//the 2D context for the images
+		viewElement : null, 	//HTML element for the canvas.
+		img : null, 			// image source for the panorama
+		pov : {yaw: 0.0, 		//view angle in horizontal plane 
+				 pitch: 0.0, 	//view angle in vertical plane
+				 zoom: 1.0, 	//zoom factor
 				 },		
-		startXY : null,
-		isPan: false,
-		panStart:[],
-		povStart: [],
 		imageInfo:{},		
 		listeners: {
-			'view-update':[]
-		},
+			'view-update':[],
+			'image-load':[]
+		},		
 		init: function(canvas) {
 			//create the canvas context
 			this.viewElement = canvas;
@@ -52,12 +47,8 @@ var PanoViewer = function() {
 		 		this.viewContext = canvas.getContext('2d');		 		
 			} 		
 			
-			//register the mouse event handler
-			canvas.addEventListener('mousemove', self.onMouseMove, false);
+			//register the mouse event handler			
 			canvas.addEventListener('mousedown', self.onMouseDown, false);
-			canvas.addEventListener('mouseup', self.onMouseUp, false);
-			canvas.addEventListener('mouseout', self.onMouseOut, false);
-			canvas.addEventListener('mouseover', function(ev){this.onselectstart = function(){return false;}}, true);
 			canvas.addEventListener('mousewheel', self.onScroll, false);
 			//for FF
 			canvas.addEventListener('DOMMouseScroll', self.onScroll, false);
@@ -69,20 +60,26 @@ var PanoViewer = function() {
 		vFov : function() {
 			return (self.viewElement.height*self.imageInfo.yResolution)/self.pov.zoom;
 		},							 
-		loadImageSrc : function(url){
+		loadImageSrc : function(url, pov){
 			this.img = new Image();
-			this.img.src = url;			
-			this.img.addEventListener('load', function(){												
-				self.imageInfo.width = this.naturalWidth;
-				self.imageInfo.height = this.naturalHeight;
-				self.imageInfo.xResolution = 360 / self.imageInfo.width;
-				self.imageInfo.yResolution = 180 / self.imageInfo.height;
-				self.pov.yaw = 0;
-				self.pov.pitch = 0;																						
-				self.viewImage();					
+			this.img.src = url;						
+			this.img.addEventListener('load', function(){
+				//notify listeners that image is loaded
+				self.fireEvent('image-load');												
+				if (pov) {
+					self.copyPov(pov, self.pov);
+				}			
+				self.initImageInfo(this);																										
+				self.drawImage();					
 				}, false); 		
 		},
-		viewImage : function(){						
+		initImageInfo : function(imageSrc){
+			self.imageInfo.width = imageSrc.naturalWidth;
+			self.imageInfo.height = imageSrc.naturalHeight;
+			self.imageInfo.xResolution = 360 / self.imageInfo.width;
+			self.imageInfo.yResolution = 180 / self.imageInfo.height;
+		},
+		drawImage : function(){						
 			var sourceTopLeft = self.getSourceTopLeft();
 			//TODO  -- improve documentation.			
 			//calculate the image parts			  			
@@ -130,39 +127,37 @@ var PanoViewer = function() {
 			return [sx,sy];
 		},
 		setPov : function(newPov) {
-			if (newPov.yaw) self.pov.yaw = self.normalizeX(newPov.yaw);
-			if (newPov.pitch) self.pov.pitch = self.clampY(newPov.pitch); 
-			if (newPov.zoom) self.pov.zoom = newPov.zoom; 
-			self.viewImage();				
-		},		
+			self.copyPov(newPov, self.pov); 
+			self.drawImage();				
+		},
+		copyPov : function(srcPov, destPov){
+			if (srcPov.yaw) destPov.yaw =  self.normalizeX(srcPov.yaw);
+			if (srcPov.pitch) destPov.pitch = self.clampY(srcPov.pitch); 
+			if (srcPov.zoom) destPov.zoom = srcPov.zoom;
+		},				
 		on : function(ev, listener){ //registers eventlisteners
 			self.listeners[ev].push(listener);
 		},
 		onMouseDown : function(ev){
-			ev.preventDefault();										
-			self.isPan = true;
-			self.panStart = [ev.clientX, ev.clientY];
-			self.povStart = [self.pov.yaw, self.pov.pitch]; //TODO : change povStart to a yaw/pitch object				
-		},
-		onMouseUp : function(ev){
-			ev.preventDefault();						
-			if (!self.isPan) return;
-			self.isPan = false;													
-		},
-		onMouseOut: function(ev){
-			ev.preventDefault();			
-			self.isPan = false;			
-		},		
-		onMouseMove: function(ev){
-			ev.preventDefault();
-			if (self.isPan) {
-				var dx = ev.clientX - self.panStart[0];
-				var dy = ev.clientY - self.panStart[1];
-				self.pov.yaw = self.normalizeX(self.povStart[0] - self.imageInfo.xResolution*dx);
-				self.pov.pitch = self.clampY(self.povStart[1] + self.imageInfo.yResolution*dy);
-				//update the image
-				self.viewImage();
-			}						
+			ev.preventDefault();													
+			var panStart = {x : ev.clientX, y: ev.clientY};
+			var povStart = {yaw : self.pov.yaw, pitch : self.pov.pitch};
+			var moveHandler = function(ev) {
+				ev.preventDefault();
+				var dyaw = (ev.clientX - panStart.x)*self.currentDegreesPerPixelX();
+				var dpitch = (ev.clientY - panStart.y)*self.currentDegreesPerPixelY();
+				self.pov.yaw = self.normalizeX(povStart.yaw - dyaw);
+				self.pov.pitch = self.clampY(povStart.pitch + dpitch);
+				self.drawImage();			
+			};
+			var removeListener = function(){
+				ev.preventDefault();
+				self.viewElement.removeEventListener('mousemove', moveHandler, false);
+			};
+			self.viewElement.addEventListener('mousemove', moveHandler, false);
+			self.viewElement.addEventListener('mouseout', removeListener, false);
+			self.viewElement.addEventListener('mouseup', removeListener, false); 
+							
 		},
 		onScroll: function(ev){
 			ev.preventDefault();
@@ -192,6 +187,12 @@ var PanoViewer = function() {
 			if (x > 180) return x - 360;
 			return x;
 		},
+		currentDegreesPerPixelX : function(){
+			return self.imageInfo.xResolution/self.pov.zoom;			 	
+		},
+		currentDegreesPerPixelY : function(){
+			return self.imageInfo.yResolution/self.pov.zoom;
+		},
 		//Ensures that all y-values are clamped so 
 		//that the view-port never exceeds [-90,90]
 		clampY : function(y){
@@ -201,7 +202,10 @@ var PanoViewer = function() {
 			return y;
 		},
 		zoomClamp : function(zoom) {
-			if (zoom < 0.1) return 0.1;
+			var minZoomX = self.viewElement.width/self.imageInfo.width;
+			var minZoomY = self.viewElement.height/self.imageInfo.height;
+			var minZoom = Math.max(minZoomX, minZoomY); 
+			if (zoom < minZoom) return minZoom;
 			if (zoom > 10) return 10;
 			return zoom;
 		},
