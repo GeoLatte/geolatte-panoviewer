@@ -35,10 +35,6 @@ var PanoViewer = function() {
 				 pitch: 0.0, 	//view angle in vertical plane
 				 zoom: 1.0, 	//zoom factor
 				 },		
-		startXY : null,
-		isPan: false,
-		panStart:[],
-		povStart: [],
 		imageInfo:{},		
 		listeners: {
 			'view-update':[],
@@ -51,12 +47,8 @@ var PanoViewer = function() {
 		 		this.viewContext = canvas.getContext('2d');		 		
 			} 		
 			
-			//register the mouse event handler
-			canvas.addEventListener('mousemove', self.onMouseMove, false);
+			//register the mouse event handler			
 			canvas.addEventListener('mousedown', self.onMouseDown, false);
-			canvas.addEventListener('mouseup', self.onMouseUp, false);
-			canvas.addEventListener('mouseout', self.onMouseOut, false);
-			canvas.addEventListener('mouseover', function(ev){this.onselectstart = function(){return false;}}, true);
 			canvas.addEventListener('mousewheel', self.onScroll, false);
 			//for FF
 			canvas.addEventListener('DOMMouseScroll', self.onScroll, false);
@@ -78,7 +70,7 @@ var PanoViewer = function() {
 					self.copyPov(pov, self.pov);
 				}			
 				self.initImageInfo(this);																										
-				self.viewImage();					
+				self.drawImage();					
 				}, false); 		
 		},
 		initImageInfo : function(imageSrc){
@@ -87,7 +79,7 @@ var PanoViewer = function() {
 			self.imageInfo.xResolution = 360 / self.imageInfo.width;
 			self.imageInfo.yResolution = 180 / self.imageInfo.height;
 		},
-		viewImage : function(){						
+		drawImage : function(){						
 			var sourceTopLeft = self.getSourceTopLeft();
 			//TODO  -- improve documentation.			
 			//calculate the image parts			  			
@@ -136,7 +128,7 @@ var PanoViewer = function() {
 		},
 		setPov : function(newPov) {
 			self.copyPov(newPov, self.pov); 
-			self.viewImage();				
+			self.drawImage();				
 		},
 		copyPov : function(srcPov, destPov){
 			if (srcPov.yaw) destPov.yaw =  self.normalizeX(srcPov.yaw);
@@ -147,30 +139,25 @@ var PanoViewer = function() {
 			self.listeners[ev].push(listener);
 		},
 		onMouseDown : function(ev){
-			ev.preventDefault();										
-			self.isPan = true;
-			self.panStart = [ev.clientX, ev.clientY];
-			self.povStart = [self.pov.yaw, self.pov.pitch]; //TODO : change povStart to a yaw/pitch object				
-		},
-		onMouseUp : function(ev){
-			ev.preventDefault();						
-			if (!self.isPan) return;
-			self.isPan = false;													
-		},
-		onMouseOut: function(ev){
-			ev.preventDefault();			
-			self.isPan = false;			
-		},		
-		onMouseMove: function(ev){
-			ev.preventDefault();
-			if (self.isPan) {
-				var dx = ev.clientX - self.panStart[0];
-				var dy = ev.clientY - self.panStart[1];
-				self.pov.yaw = self.normalizeX(self.povStart[0] - self.imageInfo.xResolution*dx);
-				self.pov.pitch = self.clampY(self.povStart[1] + self.imageInfo.yResolution*dy);
-				//update the image
-				self.viewImage();
-			}						
+			ev.preventDefault();													
+			var panStart = {x : ev.clientX, y: ev.clientY};
+			var povStart = {yaw : self.pov.yaw, pitch : self.pov.pitch};
+			var moveHandler = function(ev) {
+				ev.preventDefault();
+				var dx = ev.clientX - panStart.x;
+				var dy = ev.clientY - panStart.y;
+				self.pov.yaw = self.normalizeX(povStart.yaw - self.imageInfo.xResolution*dx);
+				self.pov.pitch = self.clampY(povStart.pitch + self.imageInfo.yResolution*dy);
+				self.drawImage();			
+			};
+			var removeListener = function(){
+				ev.preventDefault();
+				self.viewElement.removeEventListener('mousemove', moveHandler, false);
+			};
+			self.viewElement.addEventListener('mousemove', moveHandler, false);
+			self.viewElement.addEventListener('mouseout', removeListener, false);
+			self.viewElement.addEventListener('mouseup', removeListener, false); 
+							
 		},
 		onScroll: function(ev){
 			ev.preventDefault();
