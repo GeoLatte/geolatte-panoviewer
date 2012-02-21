@@ -58,8 +58,8 @@
 	
 	var btn = document.getElementById("btnUpdate");
 	btn.addEventListener('click', function(ev) { 
-		var p = document.getElementById("yaw-form").value;
-		var z = document.getElementById("zoom-form").value;
+		var p = parseFloat(document.getElementById("yaw-form").value);
+		var z = parseFloat(document.getElementById("zoom-form").value);
 		viewer.setPov({yaw: p, zoom: z});	
 	});
 				

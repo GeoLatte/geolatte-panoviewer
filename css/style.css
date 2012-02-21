@@ -1,8 +1,10 @@
 
 
-#pano { border: 2px; border-color: black; border-style: solid; }
-
-#pano { cursor: move; }
+#pano { 
+		border: 2px; 
+		border-color: black; 
+		border-style: solid; 
+		cursor: move;}
 
 
 
