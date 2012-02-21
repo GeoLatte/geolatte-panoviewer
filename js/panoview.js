@@ -163,7 +163,7 @@ var PanoViewer = function() {
 			ev.preventDefault();
 			var inc = self.wheelEventSteps(ev);	
 			//each zoom_step is a ZOOM_STEP% magnification (default: 20%).							
-			var zoom = self.zoomClamp(self.pov.zoom * (1 + inc * self.ZOOM_STEP));
+			var zoom = self.zoomClamp(self.pov.zoom * (1 - inc * self.ZOOM_STEP));
 			self.setPov({zoom: zoom});			
 		},
    	getCursorPosition : function(e){
