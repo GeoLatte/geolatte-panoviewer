@@ -238,8 +238,9 @@ var PanoViewer = function () {
             return y;
         },
         zoomClamp : function (zoom) {
-            var minZoomX = self.canvasElement.width/self.sourceInfo.width;
-            var minZoomY = self.canvasElement.height/self.sourceInfo.height;
+            //determine minZoom so that hFov() < 180 and vFov() < 90
+            var minZoomX = self.canvasElement.width * self.sourceInfo.degPerSrcPixelX/180.0;
+            var minZoomY = self.canvasElement.height* self.sourceInfo.degPerSrcPixelY/90.0;
             var minZoom = Math.max(minZoomX, minZoomY); 
             if (zoom < minZoom) return minZoom;
             if (zoom > 10) return 10;
