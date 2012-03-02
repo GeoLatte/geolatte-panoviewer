@@ -205,6 +205,9 @@ var PanoViewer = function () {
         cursorPosition : function (e) {
             var x;
             var y;
+            if (e.layerX || e.layerY){
+                return {x: e.layerX, y:e.layerY};
+            }
             if (e.pageX || e.pageY){
                 x = e.pageX;
                 y = e.pageY;
@@ -212,8 +215,17 @@ var PanoViewer = function () {
                 x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
                 y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;           
             }       
-            x -= self.canvasElement.offsetLeft;
-            y -= self.canvasElement.offsetTop;
+            
+            var currentElement = self.canvasElement;
+            var totalOffsetX =0;
+            var totalOffsetY = 0;
+            do{
+                totalOffsetX += currentElement.offsetLeft;
+                totalOffsetY += currentElement.offsetTop;
+            }
+            while(currentElement = currentElement.offsetParent)
+            x = x - totalOffsetX;
+            y = y - totalOffsetY;
             return { x : x, y : y };    
         },
         //Ensures that all x-values are within [-180, 180] 

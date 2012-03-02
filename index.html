@@ -72,19 +72,20 @@
 
 <h1>Prototype Panoramische viewer</h1>
 
-<canvas id="pano" width="800" height="600">
-	Get a better browser!
-</canvas>
+<div id="container">
+	<canvas id="pano" width="800" height="600">
+		Get a better browser!
+	</canvas> 
+	<form>
+		<input id="yaw-form" type="text" value="0.0" name="yaw"/>
+		<input id="zoom-form" type="text" value="1.0" name="zoom"/> 
+		<input type="button" id="btnUpdate" value="apply" />
+	</form>
 
-<form>
-	<input id="yaw-form" type="text" value="0.0" name="yaw"/>
-	<input id="zoom-form" type="text" value="1.0" name="zoom"/> 
-	<input type="button" id="btnUpdate" value="apply" />
-</form>
-
-<h3>Image info</h3>
-<ul id="pov">
-</ul>
-
+	<h3>Image info</h3>
+	<ul id="pov">
+	</ul>        
+</div>
+           
 </body>
 </html>
