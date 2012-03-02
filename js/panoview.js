@@ -262,7 +262,7 @@ var PanoViewer = function () {
             if (ev.type == 'DOMMouseScroll') { //FF
                 return ev.detail / 3.0;
             }
-            return ev.wheelDelta / 120.0;   
+            return - ev.wheelDelta / 120.0;   
         }           
     };
     return self;
