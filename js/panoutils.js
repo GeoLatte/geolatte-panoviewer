@@ -91,10 +91,8 @@ function PanoXYPositioner (viewer1, pos1, viewer2, pos2){
          var d1 = {x: Math.sin(toRadians(positions[1].yaw)),
                    y: Math.cos(toRadians(positions[1].yaw))};						 
 			
-         self.intersection = findIntersection(p0, d0, p1, d1);
-         if (self.intersection) {
-            self.fireEvent('intersection-updated', self.intersection);
-         }
+         self.intersection = findIntersection(p0, d0, p1, d1);         
+         self.fireEvent('intersection-updated', self.intersection ? self.intersection : {});
       }
    };
    PanoMixin(self, new PanoEvents(['intersection-updated']));

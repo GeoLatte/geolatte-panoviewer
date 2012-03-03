@@ -152,13 +152,16 @@ var PanoViewer = function () {
                 self.drawImage();           
             };                             
             //.. and the function to remove the mouse-move handler on mouseup or mouseout
-            var removeListener = function (ev) {
+            var removeListeners = function (ev) {
                 ev.preventDefault();
                 self.canvasElement.removeEventListener('mousemove', moveHandler, false);
+                self.canvasElement.removeEventListener('mouseout', removeListeners, false);
+                self.canvasElement.removeEventListener('mouseup', removeListeners, false);
+                
             };
             self.canvasElement.addEventListener('mousemove', moveHandler, false);
-            self.canvasElement.addEventListener('mouseout', removeListener, false);
-            self.canvasElement.addEventListener('mouseup', removeListener, false); 
+            self.canvasElement.addEventListener('mouseout', removeListeners, false);
+            self.canvasElement.addEventListener('mouseup', removeListeners, false); 
                             
         },
         onScroll: function (ev) {
@@ -210,6 +213,8 @@ var PanoViewer = function () {
                 ev.preventDefault();
                 self.fireEvent('bearing-registered', self.toBearing(self.currentTarget));                
                 self.canvasElement.removeEventListener('mousemove', moveHandler, false);
+                self.canvasElement.removeEventListener('click', clickListener, false);
+                
             };
             self.canvasElement.addEventListener('mousemove', moveHandler, false);
             self.canvasElement.addEventListener('click', clickListener, false); 

@@ -37,33 +37,33 @@
   <script>
   function loadViewer(){
 
-	var canvasEl = document.getElementById("pano");
-	if(!canvasEl){
-		alert('Canvas element not found.');
-	}
-	var viewer = new PanoViewer();
-	viewer.init(canvasEl);
-	viewer.on('view-update', function(pov){
-				var povEl = document.getElementById("pov");
-				var str = "<li> yaw = "  + pov.yaw + "</li>" ;
-				str += "<li> pitch = "  + pov.pitch + "</li>" ;
-				str += "<li> zoom = " + pov.zoom + "</li>";
-				str += "<li> left edge = " + viewer.normalizeX(pov.yaw - pov.hFov/2) + "</li>";				
-				povEl.innerHTML = str;
+   var canvasEl = document.getElementById("pano");
+   if(!canvasEl){
+      alert('Canvas element not found.');
+   }
+   var viewer = new PanoViewer();
+   viewer.init(canvasEl);
+   viewer.on('view-update', function(pov){
+            var povEl = document.getElementById("pov");
+            var str = "<li> yaw = "  + pov.yaw + "</li>" ;
+            str += "<li> pitch = "  + pov.pitch + "</li>" ;
+            str += "<li> zoom = " + pov.zoom + "</li>";
+            str += "<li> left edge = " + viewer.normalizeX(pov.yaw - pov.hFov/2) + "</li>";				
+            povEl.innerHTML = str;
 				
-				var ywfrm = document.getElementById("yaw-form");
-				ywfrm.setAttribute("value", pov.yaw);
+            var ywfrm = document.getElementById("yaw-form");
+            ywfrm.setAttribute("value", pov.yaw);
 					
-		});
+      });
 	
-	var btn = document.getElementById("btnUpdate");
-	btn.addEventListener('click', function(ev) { 
-		var p = parseFloat(document.getElementById("yaw-form").value);
-		var z = parseFloat(document.getElementById("zoom-form").value);
-		viewer.setPov({yaw: p, zoom: z});	
-	});
+   var btn = document.getElementById("btnUpdate");
+   btn.addEventListener('click', function(ev) { 
+      var p = parseFloat(document.getElementById("yaw-form").value);
+      var z = parseFloat(document.getElementById("zoom-form").value);
+      viewer.setPov({yaw: p, zoom: z});	
+   });
 				
-	viewer.loadImageSrc('panos/5C01K8RM.jpg', {yaw: 90.0});
+   viewer.loadImageSrc('panos/5C01K8RM.jpg', {yaw: 90.0});
 					
 	
 }
@@ -73,18 +73,18 @@
 <h1>Prototype Panoramische viewer</h1>
 
 <div id="container">
-	<canvas id="pano" class="panoviewer" width="800" height="600">
-		Get a better browser!
-	</canvas> 
-	<form>
-		<input id="yaw-form" type="text" value="0.0" name="yaw"/>
-		<input id="zoom-form" type="text" value="1.0" name="zoom"/> 
-		<input type="button" id="btnUpdate" value="apply" />
-	</form>
+   <canvas id="pano" class="panoviewer" width="800" height="600">
+      Get a better browser!
+   </canvas> 
+   <form>
+      <input id="yaw-form" type="text" value="0.0" name="yaw"/>
+      <input id="zoom-form" type="text" value="1.0" name="zoom"/> 
+      <input type="button" id="btnUpdate" value="apply" />
+   </form>
 
-	<h3>Image info</h3>
-	<ul id="pov">
-	</ul>        
+   <h3>Image info</h3>
+   <ul id="pov">
+   </ul>        
 </div>
            
 </body>

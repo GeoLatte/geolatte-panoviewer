@@ -39,49 +39,66 @@
   <script>
   function loadViewer(){
 
-	//create the first viewer
-	var canvasEl1 = document.getElementById("img1");
-	if(!canvasEl1){
-		alert('Canvas element not found.');
-	}
-	var viewer1 = new PanoViewer();
-	viewer1.init(canvasEl1);
-	viewer1.loadImageSrc('panos/708820_18_4800_2400_0.jpg', {yaw: 124.56});
+   //create the first viewer
+   var canvasEl1 = document.getElementById("img1");
+   if(!canvasEl1){
+      alert('Canvas element not found.');
+   }
+   var viewer1 = new PanoViewer();
+   viewer1.init(canvasEl1);
+   viewer1.loadImageSrc('panos/708820_18_4800_2400_0.jpg', {yaw: 124.56});
 	
-	//create the second viewer
-	var canvasEl2 = document.getElementById("img2");
-	if(!canvasEl2){
-		alert('Canvas element not found.');
-	}
-	var viewer2 = new PanoViewer();
-	viewer2.init(canvasEl2);
-	viewer2.loadImageSrc('panos/708821_18_4800_2400_0.jpg', {yaw: 124.54});
+   //create the second viewer
+   var canvasEl2 = document.getElementById("img2");
+   if(!canvasEl2){
+      alert('Canvas element not found.');
+   }
+   var viewer2 = new PanoViewer();
+   viewer2.init(canvasEl2);
+   viewer2.loadImageSrc('panos/708821_18_4800_2400_0.jpg', {yaw: 124.54});
 	
-	//register the eventHandler for registering bearing
-	var reg1Btn = document.getElementById("reg1");
-	reg1Btn.addEventListener('click', function(ev){viewer1.registerBearing()});
+   //register the eventHandler for registering bearing
+   var reg1Btn = document.getElementById("reg1");
+   reg1Btn.addEventListener('click', function(ev){viewer1.registerBearing()});
    var reg2Btn = document.getElementById("reg2");
    reg2Btn.addEventListener('click', function(ev){viewer2.registerBearing()});
 	
 							
-	//create the POVSymbolizer
-	var overviewEl = document.getElementById("overview");
-	if (!overviewEl) {
-	alert('canvas for overview not found.');
-	}					
-	var overview = new POVSymbolizer();
-	overview.init(overviewEl, '#FFFFAA');
+   //create the POVSymbolizer
+   var overviewEl = document.getElementById("overview");
+   if (!overviewEl) {
+   alert('canvas for overview not found.');
+   }					
+   var overview = new POVSymbolizer();
+   overview.init(overviewEl, '#FFFFAA');
 	
-	//register the viewers
-	overview.registerViewer(viewer1, {x:140042.237 , y: 199973.0358});
-	overview.registerViewer(viewer2, {x:140046.359 , y: 199970.2147});
+   //register the viewers
+   overview.registerViewer(viewer1, {x:140042.237 , y: 199973.0358});
+   overview.registerViewer(viewer2, {x:140046.359 , y: 199970.2147});
 	
-	//register the XY-position
-	var positioner = new PanoXYPositioner(viewer1, {x:140042.237 , y: 199973.0358}, viewer2, {x:140046.359 , y: 199970.2147});
-	var intersectionResult = document.getElementById("intersection-result");
-	positioner.on('intersection-updated', function(pos){
-		intersectionResult.innerHTML = "Calculated intersection: " + pos.x + ", " + pos.y; 
-	}); 
+   //register the XY-position
+   var positioner = new PanoXYPositioner(viewer1, {x:140042.237 , y: 199973.0358}, viewer2, {x:140046.359 , y: 199970.2147});
+   var intersectionResult = document.getElementById("intersection-result");
+   var oldPos = {};
+   function calcDiff(pos, oldPos){
+      if (pos.x && oldPos.x) {
+         var dx,dy;
+         dx = oldPos.x - pos.x;
+         dy = oldPos.y - pos.y;			
+         return Math.sqrt(dx*dx + dy*dy);
+      }
+      return 0;
+   }
+   positioner.on('intersection-updated', function(pos){
+      if (pos.x && pos.y) {
+         var diff = calcDiff(pos, oldPos);	
+         oldPos = pos;		
+         var difMsg = (diff > 0 ? " (difference = " + diff + ")" : " ");
+         intersectionResult.innerHTML = "Calculated intersection: " + pos.x + ", " + pos.y  + difMsg;
+      } else {
+         intersectionResult.innerHTML = "Calculated intersection: (no intersection)";
+      } 
+   }); 
 	
 };
   </script>
@@ -92,17 +109,17 @@
 <h4 id="intersection-result">Calculated intersection: </h4>
 <div id="container">
 	
-	<form>
-		<input id="reg1" type="button" value="register bearing on viewer 1"/>
-		<input id="reg2" type="button" value="register bearing on viewer 2"/>
-	</form>
-	<canvas id="img1" class="panoviewer" width="600" height="400">
-		Get a better browser!
-	</canvas>
-	<canvas id="img2" class="panoviewer" width="600" height="400">
-		Get a better browser!
-	</canvas>
-	<canvas id="overview" class="panoviewer" width="1210" height = "400"/>			 
+   <form>
+      <input id="reg1" type="button" value="register bearing on viewer 1"/>
+      <input id="reg2" type="button" value="register bearing on viewer 2"/>
+   </form>
+   <canvas id="img1" class="panoviewer" width="600" height="400">
+      Get a better browser!
+   </canvas>
+   <canvas id="img2" class="panoviewer" width="600" height="400">
+      Get a better browser!
+   </canvas>
+   <canvas id="overview" class="panoviewer" width="1210" height = "400"/>			 
 </div>
 
 <div>
