@@ -21,6 +21,10 @@ Copyright (c) 2012, Geovise BVBA
 
 */
 
+/*
+A PanoViewer is a component that turns a canvas element into a viewer
+for Panoramic images.
+*/
 
 /* Author: Karel Maesen, Geovise BVBA */
 
@@ -33,13 +37,9 @@ var PanoViewer = function () {
         img : null,             // image source for the panorama
         pov : {yaw: 0.0,        //view angle in horizontal plane 
                  pitch: 0.0,    //view angle in vertical plane
-                 zoom: 1.0},     //zoom factor = # canvasPixel / sourcePixel
+                 zoom: 1.0},    //zoom factor = # canvasPixel / sourcePixel
         sourceInfo: {},
-        listeners: {
-            'view-update': [],
-            'image-load': [],
-            'image-load-error': []
-        },
+        currentTarget: null,	  //the current target is the image pixel that is "targeted" by a cursor.
         init: function (canvas) {
             //create the canvas context
             this.canvasElement = canvas;
@@ -108,18 +108,15 @@ var PanoViewer = function () {
                 self.canvasContext.drawImage(self.img, 
                         0, sourceTopLeft.y, w2, srcHeight, 
                         canvasW1,0, canvasW2, self.canvasElement.height);
+            }
+            if( self.currentTarget ) {
+            	self.drawCursorOnPosition(self.canvasPixel(self.currentTarget));
             }                           
             self.fireEvent('view-update', {yaw :self.pov.yaw, 
                                                      pitch: self.pov.pitch, 
                                                      zoom: self.pov.zoom, 
                                                      hFov: self.hFov(),
                                                      vFov: self.vFov()});                           
-        },
-        fireEvent: function (typeEvent, ev) {
-            var i = self.listeners[typeEvent].length;
-            while(i--){
-                self.listeners[typeEvent][i].call(self, ev);
-            }
         },
         sourceTopLeft : function () {                  
             var leftEdgeYaw = self.normalizeX(self.pov.yaw - self.hFov()/2);                        
@@ -139,9 +136,6 @@ var PanoViewer = function () {
             if (srcPov.pitch != null) destPov.pitch = self.clampY(srcPov.pitch); 
             if (srcPov.zoom != null) destPov.zoom = srcPov.zoom;
         },              
-        on : function (ev, listener) { //registers eventlisteners
-            self.listeners[ev].push(listener);
-        },
         onMouseDown : function (ev) {
             ev.preventDefault();                                                    
             var panStart = {x : ev.clientX, y: ev.clientY};
@@ -149,14 +143,16 @@ var PanoViewer = function () {
             //create the mousemove handler
             var moveHandler = function (ev) {
                 ev.preventDefault();
-                var dyaw = (ev.clientX - panStart.x)*self.currentDegPerCanvasPixelX();
-                var dpitch = (ev.clientY - panStart.y)*self.currentDegPerCanvasPixelY();
+                var dx = (ev.clientX - panStart.x);
+                var dy = (ev.clientY - panStart.y);
+                var dyaw = dx*self.currentDegPerCanvasPixelX();
+                var dpitch = dy*self.currentDegPerCanvasPixelY();
                 self.pov.yaw = self.normalizeX(povStart.yaw - dyaw);
                 self.pov.pitch = self.clampY(povStart.pitch + dpitch);
                 self.drawImage();           
             };                             
             //.. and the function to remove the mouse-move handler on mouseup or mouseout
-            var removeListener = function () {
+            var removeListener = function (ev) {
                 ev.preventDefault();
                 self.canvasElement.removeEventListener('mousemove', moveHandler, false);
             };
@@ -168,7 +164,7 @@ var PanoViewer = function () {
         onScroll: function (ev) {
             ev.preventDefault();
             //first get the source pixel under the current mouse cursor
-            var oldCanvasPixel = self.cursorPosition(ev);
+            var oldCanvasPixel = self.mousePosition(ev);
             var srcPixel = self.srcPixel(oldCanvasPixel);
             //set the zoom-factor
             self.pov.zoom = self.stepZoom(self.wheelEventSteps(ev)); 
@@ -202,7 +198,34 @@ var PanoViewer = function () {
             var canvasY = (srcPixel.y - sourceTopLeft.y) * self.pov.zoom;
             return {x: canvasX, y: canvasY};
         },
-        cursorPosition : function (e) {
+        registerBearing : function(){            
+            var moveHandler = function (ev) {
+                ev.preventDefault();
+                var mousePosition = self.mousePosition(ev);
+                self.currentTarget = self.srcPixel(mousePosition);
+                self.drawImage();                                
+            };                             
+            //.. and the function to remove the mouse-move handler on mouseup or mouseout
+            var clickListener = function (ev) {
+                ev.preventDefault();
+                self.fireEvent('bearing-registered', self.toBearing(self.currentTarget));                
+                self.canvasElement.removeEventListener('mousemove', moveHandler, false);
+            };
+            self.canvasElement.addEventListener('mousemove', moveHandler, false);
+            self.canvasElement.addEventListener('click', clickListener, false); 
+        },
+        drawCursorOnPosition : function(pos){
+            self.canvasContext.strokeStyle = 'red';
+            self.canvasContext.lineWidth = 1
+            self.canvasContext.beginPath();
+            self.canvasContext.moveTo(0, pos.y);
+            self.canvasContext.lineTo(self.canvasContext.canvas.width, pos.y);					 
+            self.canvasContext.moveTo(pos.x, 0);
+            self.canvasContext.lineTo(pos.x, self.canvasContext.canvas.height);
+            self.canvasContext.stroke();
+            self.canvasContext.closePath();
+        },
+        mousePosition : function (e) {
             var x;
             var y;
             if (e.layerX || e.layerY){
@@ -235,6 +258,12 @@ var PanoViewer = function () {
             if (x > 180) return x - 360;
             return x;
         },
+        toBearing : function(srcPixel){
+        		return {
+        			yaw: -180 + srcPixel.x * self.sourceInfo.degPerSrcPixelX,
+        			pitch: -90 + srcPixel.y * self.sourceInfo.degPerSrcPixelY 
+        		};
+        },
         currentDegPerCanvasPixelX : function () {
             return self.sourceInfo.degPerSrcPixelX/self.pov.zoom;                
         },
@@ -265,5 +294,6 @@ var PanoViewer = function () {
             return - ev.wheelDelta / 120.0;   
         }           
     };
+    PanoMixin(self, new PanoEvents(['view-update', 'image-load', 'image-load-error', 'bearing-registered'])); 
     return self;
 };

@@ -3,15 +3,47 @@
 #container {
     position: relative;
     left: 50px;
-    top: 100px;
+    top: 20px;
     
-}             
+}  
 
-#pano { 
+           
+.panoviewer { 
 		border: 2px; 
 		border-color: black; 
 		border-style: solid; 
 		cursor: move;}
+		
+#img1 {
+	position: absolute;
+	left:10px;
+	top: 30px;
+}
+
+#img2 {
+	position: absolute;
+	left: 620px;
+	top: 30px;
+}
+
+#reg1 {
+	position: absolute;
+ 	left: 10px;	
+	}
+	
+#reg2 {
+	position: absolute;
+ 	left: 620px;	
+}           
+
+
+#overview {
+	position: absolute;
+	left:10px;
+	top: 450px;
+	
+}
+		
 
 
 
