@@ -77,15 +77,15 @@ function POVSymbolizer (){
          for (var vIdx = 0, max = self.viewers.length; vIdx < max; vIdx +=1){
             var viewerData = self.viewers[vIdx].imgData;
             self.drawViewerPov(viewerData);                  		      		
-				if ( viewerData.bearing ) {
-					self.drawViewerTarget(viewerData);		
+            if ( viewerData.bearing ) {
+               self.drawViewerTarget(viewerData);		
             }         
          }      	
       },
       drawViewerPov: function(viewerData){
-      	self.canvasContext.fillStyle = '#0000FF';  //blue
-      	var maxLineLength = 1.5*Math.max(self.mapExtent.width, self.mapExtent.height);
-	      var size = 5 / self.mapScale ;  //5 px  
+         self.canvasContext.fillStyle = '#0000FF';  //blue
+         var maxLineLength = 1.5*Math.max(self.mapExtent.width, self.mapExtent.height);
+         var size = 5 / self.mapScale ;  //5 px  
          self.canvasContext.fillRect(viewerData.x, viewerData.y, size, size);            
          self.canvasContext.globalAlpha = 0.4;
          self.canvasContext.beginPath();
@@ -94,20 +94,20 @@ function POVSymbolizer (){
          var minAngle = (viewerData.yaw - viewerData.hFov/2) * Math.PI / 180;              
          self.canvasContext.lineTo(viewerData.x + maxLineLength*Math.sin(maxAngle), viewerData.y + maxLineLength*Math.cos(maxAngle));
          self.canvasContext.lineTo(viewerData.x + maxLineLength*Math.sin(minAngle), viewerData.y + maxLineLength*Math.cos(minAngle));
-			self.canvasContext.fill();				
-		   self.canvasContext.closePath();
-	   	self.canvasContext.strokeStyle = 'red';
-		   self.canvasContext.lineWidth = 1/ self.mapScale; // 1px
+         self.canvasContext.fill();				
+         self.canvasContext.closePath();
+         self.canvasContext.strokeStyle = 'red';
+         self.canvasContext.lineWidth = 1/ self.mapScale; // 1px
 
       },
       drawViewerTarget: function(viewerData){
-      	var maxLineLength = 1.5*Math.max(self.mapExtent.width, self.mapExtent.height);
-			var yaw = viewerData.bearing.yaw * Math.PI / 180;				
-			self.canvasContext.beginPath();
-			self.canvasContext.moveTo(viewerData.x, viewerData.y);				
-			self.canvasContext.lineTo(viewerData.x + maxLineLength*Math.sin(yaw), viewerData.y + maxLineLength*Math.cos(yaw));
-		   self.canvasContext.stroke();
-        	self.canvasContext.closePath();      	
+         var maxLineLength = 1.5*Math.max(self.mapExtent.width, self.mapExtent.height);
+         var yaw = viewerData.bearing.yaw * Math.PI / 180;				
+         self.canvasContext.beginPath();
+         self.canvasContext.moveTo(viewerData.x, viewerData.y);				
+         self.canvasContext.lineTo(viewerData.x + maxLineLength*Math.sin(yaw), viewerData.y + maxLineLength*Math.cos(yaw));
+         self.canvasContext.stroke();
+         self.canvasContext.closePath();      	
       },
       updateMapExtent : function() {
          var minWidth, minHeight;
@@ -137,27 +137,27 @@ function POVSymbolizer (){
          self.canvasContext.setTransform(scale, 0, 0, -scale, - scale*self.mapExtent.x, scale*self.mapExtent.y);      	      	
       },
       viewerInfo: function(viewer){
-      	var i = self.viewers.length;
-      	while (i--){
-      		if (self.viewers[i].viewer === viewer) {
-      			return self.viewers[i];
-      		}
-      	}
+         var i = self.viewers.length;
+         while (i--){
+            if (self.viewers[i].viewer === viewer) {
+               return self.viewers[i];
+            }
+         }
       },
       createViewUpdateListener : function(viewer){         
          return function(ev){      		
-         	var viewerInfo = self.viewerInfo(viewer);
-         	viewerInfo.imgData.hFov = ev.hFov;
-         	viewerInfo.imgData.yaw = ev.yaw;         	
+            var viewerInfo = self.viewerInfo(viewer);
+            viewerInfo.imgData.hFov = ev.hFov;
+            viewerInfo.imgData.yaw = ev.yaw;         	
             self.update();
          };
       },
       createBearingRegisteredListener : function(viewer){
-      	return function(ev){
-      		var viewerInfo = self.viewerInfo(viewer);
-      		viewerInfo.imgData.bearing = {yaw: ev.yaw, pitch: ev.pitch};
-      		self.update();
-      	};
+         return function(ev){
+            var viewerInfo = self.viewerInfo(viewer);
+            viewerInfo.imgData.bearing = {yaw: ev.yaw, pitch: ev.pitch};
+            self.update();
+         };
       }
    };
    return self;

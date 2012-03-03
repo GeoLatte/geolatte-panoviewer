@@ -110,7 +110,7 @@ var PanoViewer = function () {
                         canvasW1,0, canvasW2, self.canvasElement.height);
             }
             if( self.currentTarget ) {
-            	self.drawCursorOnPosition(self.canvasPixel(self.currentTarget));
+               self.drawCursorOnPosition(self.canvasPixel(self.currentTarget));
             }                           
             self.fireEvent('view-update', {yaw :self.pov.yaw, 
                                                      pitch: self.pov.pitch, 
@@ -259,10 +259,10 @@ var PanoViewer = function () {
             return x;
         },
         toBearing : function(srcPixel){
-        		return {
-        			yaw: -180 + srcPixel.x * self.sourceInfo.degPerSrcPixelX,
-        			pitch: -90 + srcPixel.y * self.sourceInfo.degPerSrcPixelY 
-        		};
+            return {
+               yaw: -180 + srcPixel.x * self.sourceInfo.degPerSrcPixelX,
+               pitch: -90 + srcPixel.y * self.sourceInfo.degPerSrcPixelY 
+            };
         },
         currentDegPerCanvasPixelX : function () {
             return self.sourceInfo.degPerSrcPixelX/self.pov.zoom;                
