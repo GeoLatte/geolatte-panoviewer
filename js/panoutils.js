@@ -1,4 +1,3 @@
-
 /*
 An mixin function. Mixes all properties/methods of the second to last argument objects into the
 first argument object.
@@ -38,13 +37,13 @@ function PanoEvents(/* array of event types (as strings)*/ eventTypes) {
    }; 
 }
 
-function PanoXYPositioner (viewer1, pos1, viewer2, pos2){
+function PanoXYZPositioner (viewer1, pos1, viewer2, pos2){
 
    var EPSILON = Math.PI * 0.25 / 180; //minimum of 0.25 degrees angle between the lines 	
    var toRadians = function(degrees){
       return Math.PI * degrees / 180;
    };
-   var findIntersection = function(p0, d0, p1, d1){
+   var findIntersection2D = function(p0, d0, p1, d1){
       var e,s, t, sqrKross, kross, sqrLen0, sqrLen1;
       e = {x : p1.x - p0.x, y: p1.y - p0.y};
       kross = d0.x * d1.y - d0.y*d1.x;
@@ -55,7 +54,7 @@ function PanoXYPositioner (viewer1, pos1, viewer2, pos2){
          s = (e.x * d1.y - e.y*d1.x) / kross;			
          t = (e.x * d0.y - e.y*d0.x) / kross;
          if (s > 0 && t > 0) {
-            return {x: p0.x + s*d0.x, y: p0.y + s*d0.y};
+            return {x: p0.x + s*d0.x, y: p0.y + s*d0.y, s: s, t: t};
          }			
       }
       return null;
@@ -63,9 +62,11 @@ function PanoXYPositioner (viewer1, pos1, viewer2, pos2){
    var createListener = function(viewer){
       return function(bearing){
          if(viewer === viewers[0]) {
-            positions[0].yaw = bearing.yaw;				
+            positions[0].yaw = bearing.yaw;
+            positions[0].pitch = bearing.pitch;				
          } else if (viewer === viewers[1]){
             positions[1].yaw = bearing.yaw;
+            positions[1].pitch = bearing.pitch;            
          }
          self.updateIntersection();
       }
@@ -89,12 +90,27 @@ function PanoXYPositioner (viewer1, pos1, viewer2, pos2){
                    y: Math.cos(toRadians(positions[0].yaw))};
          var p1 = positions[1];
          var d1 = {x: Math.sin(toRadians(positions[1].yaw)),
-                   y: Math.cos(toRadians(positions[1].yaw))};						 
-			
-         self.intersection = findIntersection(p0, d0, p1, d1);         
-         self.fireEvent('intersection-updated', self.intersection ? self.intersection : {});
+                   y: Math.cos(toRadians(positions[1].yaw))};						 		
+         var intersection = findIntersection2D(p0, d0, p1, d1);    
+         if (!intersection) {
+            self.fireEvent('intersection-updated',null);
+            return;
+         }
+
+         //calculate the Z value from s and t (average)
+         var dz1 = intersection.t*Math.tan(toRadians(positions[0].pitch));
+         var dz2 = intersection.s*Math.tan(toRadians(positions[1].pitch));               
+         var z1 = positions[0].z + dz1;
+         var z2 = positions[1].z + dz2;
+         self.fireEvent('intersection-updated', self.intersection ? self.intersection : {x: intersection.x, y: intersection.y, z: z1, altZ: z2});
       }
    };
    PanoMixin(self, new PanoEvents(['intersection-updated']));
    return self;	
 }
+
+/*
+TODO:
+ - handle near parallel or non-intersecting half-lines better than returning a null object.
+
+*/

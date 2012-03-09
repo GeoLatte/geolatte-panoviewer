@@ -71,13 +71,16 @@
    }					
    var overview = new POVSymbolizer();
    overview.init(overviewEl, '#FFFFAA');
+   
+   var pos1 = {x:140042.237 , y: 199973.0358, z:4.825};
+   var pos2 = {x:140046.359 , y: 199970.2147, z:4.829};
 	
    //register the viewers
-   overview.registerViewer(viewer1, {x:140042.237 , y: 199973.0358});
-   overview.registerViewer(viewer2, {x:140046.359 , y: 199970.2147});
+   overview.registerViewer(viewer1, pos1);
+   overview.registerViewer(viewer2, pos2);
 	
    //register the XY-position
-   var positioner = new PanoXYPositioner(viewer1, {x:140042.237 , y: 199973.0358}, viewer2, {x:140046.359 , y: 199970.2147});
+   var positioner = new PanoXYZPositioner(viewer1, pos1, viewer2, pos2);
    var intersectionResult = document.getElementById("intersection-result");
    var oldPos = {};
    function calcDiff(pos, oldPos){
@@ -90,11 +93,11 @@
       return 0;
    }
    positioner.on('intersection-updated', function(pos){
-      if (pos.x && pos.y) {
+      if (pos) {
          var diff = calcDiff(pos, oldPos);	
          oldPos = pos;		
          var difMsg = (diff > 0 ? " (difference = " + diff + ")" : " ");
-         intersectionResult.innerHTML = "Calculated intersection: " + pos.x + ", " + pos.y  + difMsg;
+         intersectionResult.innerHTML = "Calculated intersection: " + pos.x + ", " + pos.y + "," + pos.z + difMsg;
       } else {
          intersectionResult.innerHTML = "Calculated intersection: (no intersection)";
       } 

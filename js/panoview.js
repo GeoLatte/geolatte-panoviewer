@@ -266,7 +266,7 @@ var PanoViewer = function () {
         toBearing : function(srcPixel){
             return {
                yaw: -180 + srcPixel.x * self.sourceInfo.degPerSrcPixelX,
-               pitch: -90 + srcPixel.y * self.sourceInfo.degPerSrcPixelY 
+               pitch: 90 - srcPixel.y * self.sourceInfo.degPerSrcPixelY 
             };
         },
         currentDegPerCanvasPixelX : function () {
