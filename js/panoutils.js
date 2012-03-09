@@ -40,7 +40,7 @@ function PanoEvents(/* array of event types (as strings)*/ eventTypes) {
 
 function PanoXYPositioner (viewer1, pos1, viewer2, pos2){
 
-   var EPSILON = Math.PI * 5 / 180; //minimum of 5 degrees angle between the lines 	
+   var EPSILON = Math.PI * 0.25 / 180; //minimum of 0.25 degrees angle between the lines 	
    var toRadians = function(degrees){
       return Math.PI * degrees / 180;
    };

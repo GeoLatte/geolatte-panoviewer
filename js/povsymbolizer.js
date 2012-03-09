@@ -87,7 +87,7 @@ function POVSymbolizer (){
          var maxLineLength = 1.5*Math.max(self.mapExtent.width, self.mapExtent.height);
          var size = 5 / self.mapScale ;  //5 px  
          self.canvasContext.fillRect(viewerData.x, viewerData.y, size, size);            
-         self.canvasContext.globalAlpha = 0.4;
+         self.canvasContext.globalAlpha = 0.25;
          self.canvasContext.beginPath();
          self.canvasContext.moveTo(viewerData.x, viewerData.y);
          var maxAngle = (viewerData.yaw + viewerData.hFov/2) * Math.PI / 180;
@@ -96,12 +96,12 @@ function POVSymbolizer (){
          self.canvasContext.lineTo(viewerData.x + maxLineLength*Math.sin(minAngle), viewerData.y + maxLineLength*Math.cos(minAngle));
          self.canvasContext.fill();				
          self.canvasContext.closePath();
-         self.canvasContext.strokeStyle = 'red';
-         self.canvasContext.lineWidth = 1/ self.mapScale; // 1px
-
       },
       drawViewerTarget: function(viewerData){
          var maxLineLength = 1.5*Math.max(self.mapExtent.width, self.mapExtent.height);
+         self.canvasContext.globalAlpha = 1.0;
+         self.canvasContext.strokeStyle = 'red';
+         self.canvasContext.lineWidth = 2 / self.mapScale; // 2 px
          var yaw = viewerData.bearing.yaw * Math.PI / 180;				
          self.canvasContext.beginPath();
          self.canvasContext.moveTo(viewerData.x, viewerData.y);				
