@@ -74,7 +74,7 @@ var PanoViewer = function (canvas) {
             self.sourceInfo.degPerSrcPixelX = 360 / self.sourceInfo.width;
             self.sourceInfo.degPerSrcPixelY = 180 / self.sourceInfo.height;
         },
-        drawImage : function () {
+        drawImage : function () {         
             var sourceTopLeft = self.sourceTopLeft();
             //TODO  -- improve documentation.
             //calculate the image parts
@@ -82,13 +82,13 @@ var PanoViewer = function (canvas) {
             var srcWidth = self.canvasElement.width / self.pov.zoom;
             var w1, w2;
             // invariants : srcWidth == w1 + w2 ; self.viewelement.width == canvasW1 + canvasW2
-            if ( (sourceTopLeft.x + srcWidth ) <= self.sourceInfo.width) {
+            if ( (sourceTopLeft.x + srcWidth ) <= self.sourceInfo.width) {              
                 w1 = srcWidth;
-                w2 =0;
+                w2 =0;                
             } else {
-                    //the view-port wraps around to the left-side of the panorama image.
-                    w1 = self.sourceInfo.width - sourceTopLeft.x;
-                    w2 = srcWidth - w1;
+              //the view-port wraps around to the left-side of the panorama image.
+                w1 = self.sourceInfo.width - sourceTopLeft.x;
+                w2 = srcWidth - w1;
             }
             var canvasW1 = w1 * self.pov.zoom;
             var canvasW2 = w2 * self.pov.zoom;
@@ -97,7 +97,7 @@ var PanoViewer = function (canvas) {
                     sourceTopLeft.x, sourceTopLeft.y, w1, srcHeight,
                     0,0, canvasW1, self.canvasElement.height);
 
-           if (w2 >  0) { // in case of wrap-around
+            if (w2 >  0) { // in case of wrap-around
                 self.canvasContext.drawImage(self.img,
                         0, sourceTopLeft.y, w2, srcHeight,
                         canvasW1,0, canvasW2, self.canvasElement.height);
@@ -196,7 +196,16 @@ var PanoViewer = function (canvas) {
         },
         canvasPixel : function (srcPixel) {
             var sourceTopLeft = self.sourceTopLeft();
-            var canvasX = (srcPixel.x - sourceTopLeft.x) * self.pov.zoom;
+            //displayable part of source
+            var srcWidth = self.canvasContext.canvas.width / self.pov.zoom;
+            var srcW1 = self.sourceInfo.width - sourceTopLeft.x;
+            var srcW2 = srcWidth - srcW1;
+            if (srcPixel.x < srcW2) {
+                //srcPixel is wrapped around on the canvas
+                var canvasX = (srcW1 + srcPixel.x) * self.pov.zoom;                
+            } else {
+                var canvasX = (srcPixel.x - sourceTopLeft.x) * self.pov.zoom;
+            }
             var canvasY = (srcPixel.y - sourceTopLeft.y) * self.pov.zoom;
             return {x: canvasX, y: canvasY};
         },

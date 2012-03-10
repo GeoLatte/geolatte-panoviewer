@@ -51,14 +51,15 @@ function POVSymbolizer (){
          }
          self.update();                   
       },
-      registerViewer : function(panoViewer, imgData){
-         if ( !imgData || !panoViewer ) throw "Required arguments missing";
+      //TODO -- registerViewer uses position argument. Should use current recording location
+      registerViewer : function(panoViewer, pos){
+         if ( !pos || !panoViewer ) throw "Required arguments missing";
          //listen to the view-update events of the viewer
          panoViewer.on('view-update', self.createViewUpdateListener(panoViewer));
          //listen to the bearing-registered events of the viewer
          panoViewer.on('bearing-registered', self.createBearingRegisteredListener(panoViewer));      	
          //add to the tracked viewer list      	
-         self.viewers.push({viewer: panoViewer, imgData: imgData});
+         self.viewers.push({viewer: panoViewer, imgData: {x: pos.x, y: pos.y, z: pos.z}});
          //update the map extent
          self.updateMapExtent();
          //update the canvas

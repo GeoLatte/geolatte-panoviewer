@@ -50,7 +50,7 @@
       alert('Canvas element not found.');
    }
    var viewer1 = new PanoViewer(canvasEl1);
-   var recLocSymbolizer1 = new RecordingLocationsSymbolizer(viewer1);   
+   var recLocSymbolizer1 = new PanoRecordingLocationsSymbolizer(viewer1);   
    viewer1.loadImageSrc('panos/708820_18_4800_2400_0.jpg', pos1, {yaw: 124.56});
    recLocSymbolizer1.setRecordingLocations([pos2]);
 	
@@ -60,7 +60,7 @@
       alert('Canvas element not found.');
    }
    var viewer2 = new PanoViewer(canvasEl2);
-   var recLocSymbolizer2 = new RecordingLocationsSymbolizer(viewer2);   
+   var recLocSymbolizer2 = new PanoRecordingLocationsSymbolizer(viewer2);   
    viewer2.loadImageSrc('panos/708821_18_4800_2400_0.jpg', pos2, {yaw: 124.54});
    recLocSymbolizer2.setRecordingLocations([pos1]);
    
@@ -84,6 +84,9 @@
    //register the viewers
    overview.registerViewer(viewer1, pos1);
    overview.registerViewer(viewer2, pos2);
+
+   //register the symbolizer for registered bearing
+   new PanoBearingSymbolizer(viewer2, viewer1);
 	
    //register the XY-position
    var positioner = new PanoXYZPositioner(viewer1, pos1, viewer2, pos2);
