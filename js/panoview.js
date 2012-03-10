@@ -391,6 +391,6 @@ var PanoViewer = function () {
             return - ev.wheelDelta / 120.0;   
         }           
     };
-    PanoMixin(self, new PanoEvents(['view-update', 'image-load', 'image-load-error', 'bearing-registered'])); 
+    panoMixin(self, new PanoEvents(['view-update', 'image-load', 'image-load-error', 'bearing-registered'])); 
     return self;
 };

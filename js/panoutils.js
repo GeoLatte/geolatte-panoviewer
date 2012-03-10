@@ -2,7 +2,7 @@
 An mixin function. Mixes all properties/methods of the second to last argument objects into the
 first argument object.
 */
-function PanoMixin(){
+function panoMixin(){
    var arg, prop;
    var destination = arguments[0];
    for (arg = 1; arg < arguments.length; arg += 1){
@@ -105,7 +105,7 @@ function PanoXYZPositioner (viewer1, pos1, viewer2, pos2){
          self.fireEvent('intersection-updated', self.intersection ? self.intersection : {x: intersection.x, y: intersection.y, z: z1, altZ: z2});
       }
    };
-   PanoMixin(self, new PanoEvents(['intersection-updated']));
+   panoMixin(self, new PanoEvents(['intersection-updated']));
    return self;	
 }
 
