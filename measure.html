@@ -39,6 +39,11 @@
   <script>
   function loadViewer(){
 
+   //the recording locations for viewer1, resp. viewer2
+   var pos1 = {x:140042.237 , y: 199973.0358, z:4.825};
+   var pos2 = {x:140046.359 , y: 199970.2147, z:4.829};
+
+
    //create the first viewer
    var canvasEl1 = document.getElementById("img1");
    if(!canvasEl1){
@@ -46,7 +51,8 @@
    }
    var viewer1 = new PanoViewer();
    viewer1.init(canvasEl1);
-   viewer1.loadImageSrc('panos/708820_18_4800_2400_0.jpg', {yaw: 124.56});
+   viewer1.loadImageSrc('panos/708820_18_4800_2400_0.jpg', pos1, {yaw: 124.56});
+   viewer1.setRecordingLocations([pos2]);
 	
    //create the second viewer
    var canvasEl2 = document.getElementById("img2");
@@ -55,7 +61,9 @@
    }
    var viewer2 = new PanoViewer();
    viewer2.init(canvasEl2);
-   viewer2.loadImageSrc('panos/708821_18_4800_2400_0.jpg', {yaw: 124.54});
+   viewer2.loadImageSrc('panos/708821_18_4800_2400_0.jpg', pos2, {yaw: 124.54});
+   viewer2.setRecordingLocations([pos1]);
+   
 	
    //register the eventHandler for registering bearing
    var reg1Btn = document.getElementById("reg1");
@@ -72,8 +80,6 @@
    var overview = new POVSymbolizer();
    overview.init(overviewEl, '#FFFFAA');
    
-   var pos1 = {x:140042.237 , y: 199973.0358, z:4.825};
-   var pos2 = {x:140046.359 , y: 199970.2147, z:4.829};
 	
    //register the viewers
    overview.registerViewer(viewer1, pos1);

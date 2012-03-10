@@ -34,12 +34,15 @@ var PanoViewer = function () {
         ZOOM_STEP : 0.20,       //default zoom-step for mouse wheel events.
         canvasContext : null,   //the 2D context for the images
         canvasElement : null,   //HTML element for the canvas.
+        CAMERA_HEIGHT: 1.6 , //Camera is mounted 1.6 m. above ground-level
         img : null,             // image source for the panorama
         pov : {yaw: 0.0,        //view angle in horizontal plane 
                  pitch: 0.0,    //view angle in vertical plane
                  zoom: 1.0},    //zoom factor = # canvasPixel / sourcePixel
         sourceInfo: {},
         currentTarget: null,	  //the current target is the image pixel that is "targeted" by a cursor.
+        currentRecordingLocation: {x: 0, y: 0, z: 0}, // the recording location for the current image (in map coordinates).
+        recordingLocations: [],   //the locations of neighboring recordinglocations in {yaw, pitch, distance} relative to this recording location
         init: function (canvas) {
             //create the canvas context
             this.canvasElement = canvas;
@@ -58,9 +61,12 @@ var PanoViewer = function () {
         vFov : function () {
             return self.canvasElement.height * self.currentDegPerCanvasPixelY();
         },                           
-        loadImageSrc : function (url, pov) {
+        loadImageSrc : function (url, recordingLocation, pov) {
             self.img = new Image();
             self.img.src = url;                     
+            if (recordingLocation) {
+                self.copyLocation(recordingLocation, self.currentRecordingLocation);                
+            }
             self.img.addEventListener('load', function(){
                 //notify listeners that image is loaded
                 self.fireEvent('image-load');                                               
@@ -80,6 +86,14 @@ var PanoViewer = function () {
             self.sourceInfo.height = imageSrc.naturalHeight;
             self.sourceInfo.degPerSrcPixelX = 360 / self.sourceInfo.width;
             self.sourceInfo.degPerSrcPixelY = 180 / self.sourceInfo.height;
+        },
+        setRecordingLocations: function(/*array of recording locations in x/y/z */locations){        
+            if (!self.currentRecordingLocation) return; // do nothing if we don't have the current recording location
+            self.recordingLocations = [];
+            for( var i = 0, max = locations.length; i < max; i++){                
+                var pos = self.toRelativePolar(locations[i]);
+                self.recordingLocations.push(pos);
+            }
         },
         drawImage : function () {                     
             var sourceTopLeft = self.sourceTopLeft();
@@ -109,14 +123,24 @@ var PanoViewer = function () {
                         0, sourceTopLeft.y, w2, srcHeight, 
                         canvasW1,0, canvasW2, self.canvasElement.height);
             }
+            //draw the current target
             if( self.currentTarget ) {
                self.drawCursorOnPosition(self.canvasPixel(self.currentTarget));
-            }                           
+            }
+                                     
+            //draw the recordinglocations
+            self.drawRecordingLocations();
             self.fireEvent('view-update', {yaw :self.pov.yaw, 
                                                      pitch: self.pov.pitch, 
                                                      zoom: self.pov.zoom, 
                                                      hFov: self.hFov(),
                                                      vFov: self.vFov()});                           
+        },
+        drawRecordingLocations : function(){
+            var i = self.recordingLocations.length;
+            while (i--){
+                self.drawRecordingLocationOnPosition(self.recordingLocations[i], true);                                                
+            }                                       
         },
         sourceTopLeft : function () {                  
             var leftEdgeYaw = self.normalizeX(self.pov.yaw - self.hFov()/2);                        
@@ -135,6 +159,11 @@ var PanoViewer = function () {
             if (srcPov.yaw != null) destPov.yaw =  self.normalizeX(srcPov.yaw);
             if (srcPov.pitch != null) destPov.pitch = self.clampY(srcPov.pitch); 
             if (srcPov.zoom != null) destPov.zoom = srcPov.zoom;
+        },
+        copyLocation : function(srcPos, destPos){
+            if( srcPos.x != null) destPos.x = srcPos.x;
+            if( srcPos.y != null) destPos.y = srcPos.y;
+            if( srcPos.z != null) destPos.z = srcPos.z;                        
         },              
         onMouseDown : function (ev) {
             ev.preventDefault();                                                    
@@ -220,8 +249,9 @@ var PanoViewer = function () {
             self.canvasElement.addEventListener('click', clickListener, false); 
         },
         drawCursorOnPosition : function(pos){
+            self.canvasContext.save();
             self.canvasContext.strokeStyle = 'red';
-            self.canvasContext.lineWidth = 1
+            self.canvasContext.lineWidth = 1;
             self.canvasContext.beginPath();
             self.canvasContext.moveTo(0, pos.y);
             self.canvasContext.lineTo(self.canvasContext.canvas.width, pos.y);					 
@@ -229,7 +259,46 @@ var PanoViewer = function () {
             self.canvasContext.lineTo(pos.x, self.canvasContext.canvas.height);
             self.canvasContext.stroke();
             self.canvasContext.closePath();
+            self.canvasContext.restore();
         },
+        drawRecordingLocationOnPosition : function(pos, /*includes the camera view*/ inclCamera){
+            var srcPixel = self.srcPixelFromBearing({yaw: pos.yaw, pitch: pos.pitchGL});
+            var pixel = self.canvasPixel(srcPixel)
+            self.canvasContext.save();
+            self.canvasContext.globalAlpha = 0.2;
+            self.canvasContext.beginPath();
+            // set the styles
+            self.canvasContext.strokeStyle = 'blue';
+            self.canvasContext.lineWidth = 1;
+            self.canvasContext.fillStyle = 'blue';
+            //calculate the diameter r
+            var dphi = 0.1; //radians!
+            var r = 2*pos.distanceGL*Math.sin(dphi);
+            self.canvasContext.save();
+            self.canvasContext.scale(1,2);
+            //TODO -- replace this with proper cylinder/plane intersection!!
+            self.canvasContext.arc(pixel.x, pixel.y/2, r*20*self.pov.zoom, 0, Math.PI*2, false);
+            self.canvasContext.stroke();                
+            self.canvasContext.fill(); 
+            self.canvasContext.closePath();               
+            self.canvasContext.restore();
+            if (inclCamera) {
+                var srcCameraPixel = self.srcPixelFromBearing({yaw: pos.yaw, pitch: pos.pitch});
+                var canvasCameraPixel = self.canvasPixel(srcCameraPixel);
+                var cameraR = 5 * self.pov.zoom; //camera symbol has 5px radius
+                self.canvasContext.beginPath();
+                self.canvasContext.moveTo(pixel.x, pixel.y);
+                self.canvasContext.lineTo(canvasCameraPixel.x, canvasCameraPixel.y+cameraR);
+                self.canvasContext.stroke();
+                self.canvasContext.closePath();
+                self.canvasContext.beginPath();                
+                self.canvasContext.arc(canvasCameraPixel.x, canvasCameraPixel.y, cameraR, 0, Math.PI*2, false);
+                self.canvasContext.fill();
+                self.canvasContext.stroke();
+                self.canvasContext.closePath();                
+            }
+            self.canvasContext.restore();
+        },        
         mousePosition : function (e) {
             var x;
             var y;
@@ -267,6 +336,29 @@ var PanoViewer = function () {
             return {
                yaw: -180 + srcPixel.x * self.sourceInfo.degPerSrcPixelX,
                pitch: 90 - srcPixel.y * self.sourceInfo.degPerSrcPixelY 
+            };
+        },
+        //Converts the specified position to a position in polar coordinates (yaw, pitch, distance)
+        // relative to the current recordinglocation
+        toRelativePolar: function(pos){
+            var dx = pos.x - self.currentRecordingLocation.x;
+            var dy = pos.y - self.currentRecordingLocation.y;
+            var dz = pos.z - self.currentRecordingLocation.z;
+            var polar = {};
+            polar.distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            polar.yaw = Math.atan2(dx,dy) * 180 / Math.PI; // TODO -- use toDegree function, use a mixin class for this 
+            polar.pitch = Math.asin(dz/polar.distance) * 180 / Math.PI;
+            //TODO -- move this to a proper location
+            polar.pitchGL = Math.atan2(dz-self.CAMERA_HEIGHT, polar.distance*Math.cos(polar.pitch)) * 180 / Math.PI;
+            var dzgl = pos.z - (self.currentRecordingLocation.z - self.CAMERA_HEIGHT);
+            polar.distanceGL = Math.sqrt(dx*dx + dy*dy + dzgl*dzgl);
+            return polar;            
+        },
+        //inverse of "toBearing"
+        srcPixelFromBearing : function(bearing){
+            return {
+                x : (bearing.yaw + 180)/self.sourceInfo.degPerSrcPixelX,
+                y : (90 - bearing.pitch)/self.sourceInfo.degPerSrcPixelY
             };
         },
         currentDegPerCanvasPixelX : function () {

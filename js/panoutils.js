@@ -96,10 +96,10 @@ function PanoXYZPositioner (viewer1, pos1, viewer2, pos2){
             self.fireEvent('intersection-updated',null);
             return;
          }
-
          //calculate the Z value from s and t (average)
          var dz1 = intersection.t*Math.tan(toRadians(positions[0].pitch));
          var dz2 = intersection.s*Math.tan(toRadians(positions[1].pitch));               
+         //NOTE: this assumes that the z-position, is the position of the camera!!
          var z1 = positions[0].z + dz1;
          var z2 = positions[1].z + dz2;
          self.fireEvent('intersection-updated', self.intersection ? self.intersection : {x: intersection.x, y: intersection.y, z: z1, altZ: z2});
@@ -111,6 +111,7 @@ function PanoXYZPositioner (viewer1, pos1, viewer2, pos2){
 
 /*
 TODO:
+ - viewers now have currentRecordingLocation property, so no need to pass it to PanoXYZPositioner constructor.
  - handle near parallel or non-intersecting half-lines better than returning a null object.
-
+ - verify the meaning of the z-coordinate (coordinate of the camera?) 
 */
