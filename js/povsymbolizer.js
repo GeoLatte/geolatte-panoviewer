@@ -172,3 +172,5 @@ function PanoImageData(/*position hash in map-coordinates*/ position){
    if (position.z != null) y = position.z;
    return {x: x, y: y, z: z};	
 }
+
+

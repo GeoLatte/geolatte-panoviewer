@@ -49,20 +49,20 @@
    if(!canvasEl1){
       alert('Canvas element not found.');
    }
-   var viewer1 = new PanoViewer();
-   viewer1.init(canvasEl1);
+   var viewer1 = new PanoViewer(canvasEl1);
+   var recLocSymbolizer1 = new RecordingLocationsSymbolizer(viewer1);   
    viewer1.loadImageSrc('panos/708820_18_4800_2400_0.jpg', pos1, {yaw: 124.56});
-   viewer1.setRecordingLocations([pos2]);
+   recLocSymbolizer1.setRecordingLocations([pos2]);
 	
    //create the second viewer
    var canvasEl2 = document.getElementById("img2");
    if(!canvasEl2){
       alert('Canvas element not found.');
    }
-   var viewer2 = new PanoViewer();
-   viewer2.init(canvasEl2);
+   var viewer2 = new PanoViewer(canvasEl2);
+   var recLocSymbolizer2 = new RecordingLocationsSymbolizer(viewer2);   
    viewer2.loadImageSrc('panos/708821_18_4800_2400_0.jpg', pos2, {yaw: 124.54});
-   viewer2.setRecordingLocations([pos1]);
+   recLocSymbolizer2.setRecordingLocations([pos1]);
    
 	
    //register the eventHandler for registering bearing

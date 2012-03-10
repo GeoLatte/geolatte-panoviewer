@@ -41,8 +41,7 @@
    if(!canvasEl){
       alert('Canvas element not found.');
    }
-   var viewer = new PanoViewer();
-   viewer.init(canvasEl);
+   var viewer = new PanoViewer(canvasEl);   
    viewer.on('view-update', function(pov){
             var povEl = document.getElementById("pov");
             var str = "<li> yaw = "  + pov.yaw + "</li>" ;
