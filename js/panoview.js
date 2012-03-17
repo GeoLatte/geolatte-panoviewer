@@ -28,18 +28,106 @@ for Panoramic images.
 
 /* Author: Karel Maesen, Geovise BVBA */
 
+var Pano = {};
+
+/*
+ * A set of common interpolators. Takes fractional pixel coordinates and
+ * and ImageData structure, and returns the interpolated pixel at the specified
+ * (fractional) pixel coordinate.
+ */
+Pano.interp = {
+    getComponent : function(imageData, x,y, comp){
+        return imageData.data[4*(imageData.width*y + x) + comp];
+    },
+    nearestNeighbor : function(imageData, pixel, outImageData, destOffset) {
+        var x,y;
+        x = Math.round(pixel.x);
+        y = Math.round(pixel.y);
+        var srcOffset = 4*(imageData.width*y + x);
+        var idx = 4;
+        while (idx--){
+            outImageData.data[destOffset + idx] = imageData.data[srcOffset+idx];
+        }
+    },
+    bilinear : function(imageData, pixel, outImageData, destOffset) {        
+        var u = Math.floor(pixel.x);
+        var v = Math.floor(pixel.y);
+        var a = pixel.x - u;
+        var b = pixel.y - v;                
+        var component = 4;
+        while (component--){
+            var A = Pano.interp.getComponent(imageData,u,v,component);
+            var B = Pano.interp.getComponent(imageData,u+1,v,component);
+            var C = Pano.interp.getComponent(imageData,u,v+1,component);
+            var D = Pano.interp.getComponent(imageData,u+1,v+1,component);
+            var E = A + a*(B-A);
+            var F = C + a*(D-C);                        
+            outImageData.data[destOffset + component] = E + b*(F-E);
+        }
+    }
+    
+};
+
+Pano.projection = {
+
+        
+    canvasToEquirect : function(viewer){
+        var leftEdgeYaw = viewer.normalizeX(viewer.pov.yaw - viewer.hFov()/2);
+        var topEdgePitch = viewer.pov.pitch + viewer.vFov()/2;
+        var sx = (leftEdgeYaw + 180)/viewer.sourceInfo.degPerSrcPixelX;            
+        var sy = (90 - topEdgePitch)/viewer.sourceInfo.degPerSrcPixelY;
+        //displayable part of source
+        var srcWidth = viewer.canvasContext.canvas.width / viewer.pov.zoom;
+        var srcW1 = viewer.sourceInfo.width - sx;
+        var srcW2 = srcWidth - srcW1;
+        var canvW1 = srcW1 * viewer.pov.zoom;
+        var canvW2 = srcW2 * viewer.pov.zoom;
+        return function(x,y, projected) {
+            var srcX, srcY;
+            if (x < canvW1) {
+                srcX = sx + x / viewer.pov.zoom;
+            } else {
+                srcX = (x - canvW1) / viewer.pov.zoom;
+            }
+            srcY = sy + y/viewer.pov.zoom;
+            projected.x = srcX;
+            projected.y = srcY;
+        }        
+    },
+    equirectToCanvas : function(viewer){
+        var leftEdgeYaw = viewer.normalizeX(viewer.pov.yaw - viewer.hFov()/2);
+        var topEdgePitch = viewer.pov.pitch + viewer.vFov()/2;
+        var sx = (leftEdgeYaw + 180)/viewer.sourceInfo.degPerSrcPixelX;            
+        var sy = (90 - topEdgePitch)/viewer.sourceInfo.degPerSrcPixelY;
+        var srcWidth = viewer.canvasContext.canvas.width / viewer.pov.zoom;
+        var srcW1 = viewer.sourceInfo.width - sx;
+        var srcW2 = srcWidth - srcW1;
+        return function(x,y, projected) {
+            if (x < srcW2) {
+                //srcPixel is wrapped around on the canvas
+                var projX = (srcW1 + x) * viewer.pov.zoom;                
+            } else {
+                var projX = (x - sx) * viewer.pov.zoom;
+            }
+            var projY = (y - sy) * viewer.pov.zoom;
+            projected.x = projX;
+            projected.y = projY;
+        }
+    }
+};
 
 var PanoViewer = function (canvas) {
     var self = {
-        ZOOM_STEP : 0.20,       //default zoom-step for mouse wheel events.
+        ZOOM_STEP : 0.20,       //default zoom-step for mouse wheel events.         
         canvasContext : null,   //the 2D context for the images
         canvasElement : null,   //HTML element for the canvas.
-        CAMERA_HEIGHT: 1.6 , //Camera is mounted 1.6 m. above ground-level
+        CAMERA_HEIGHT: 2.2 , //Camera is mounted 2.2 m. above ground-level
         currentRecordingLocation: {x: 0, y: 0, z: 0}, // the recording location for the current image (in map coordinates).
         img : null,             // image source for the panorama
         pov : {yaw: 0.0,        //view angle in horizontal plane
                  pitch: 0.0,    //view angle in vertical plane
                  zoom: 1.0},    //zoom factor = # canvasPixel / sourcePixel
+        interpolator : Pano.interp.bilinear,    // the image interpolation function (a member of PanoInterp)       
         sourceInfo: {},
         currentTarget: null,	  //the current target is the image pixel that is "targeted" by a cursor.
         hFov : function () {
@@ -48,6 +136,7 @@ var PanoViewer = function (canvas) {
         vFov : function () {
             return self.canvasElement.height * self.currentDegPerCanvasPixelY();
         },
+        imageDataContext : null,       //image data buffer (holds the complete panoramic image
         loadImageSrc : function (url, recordingLocation, pov) {
             self.img = new Image();
             self.img.src = url;
@@ -61,7 +150,13 @@ var PanoViewer = function (canvas) {
                     self.copyPov(pov, self.pov);
                 }
                 self.initSourceInfo(self.img);
+                var srcEl = document.createElement('canvas');
+                srcEl.width = self.sourceInfo.width;
+                srcEl.height = self.sourceInfo.width;
+                self.imageDataContext = srcEl.getContext('2d');
+                self.imageDataContext.drawImage(self.img, 0,0, 4800, 2400);                            
                 self.drawImage();
+                
             }, false);
             self.img.addEventListener('error', function(){
                 //notify listener that image is loaded
@@ -74,34 +169,27 @@ var PanoViewer = function (canvas) {
             self.sourceInfo.degPerSrcPixelX = 360 / self.sourceInfo.width;
             self.sourceInfo.degPerSrcPixelY = 180 / self.sourceInfo.height;
         },
-        drawImage : function () {         
-            var sourceTopLeft = self.sourceTopLeft();
-            //TODO  -- improve documentation.
-            //calculate the image parts
-            var srcHeight = self.canvasElement.height / self.pov.zoom;
-            var srcWidth = self.canvasElement.width / self.pov.zoom;
-            var w1, w2;
-            // invariants : srcWidth == w1 + w2 ; self.viewelement.width == canvasW1 + canvasW2
-            if ( (sourceTopLeft.x + srcWidth ) <= self.sourceInfo.width) {              
-                w1 = srcWidth;
-                w2 =0;                
-            } else {
-              //the view-port wraps around to the left-side of the panorama image.
-                w1 = self.sourceInfo.width - sourceTopLeft.x;
-                w2 = srcWidth - w1;
-            }
-            var canvasW1 = w1 * self.pov.zoom;
-            var canvasW2 = w2 * self.pov.zoom;
+        drawImage : function () {
 
-            self.canvasContext.drawImage(self.img,
-                    sourceTopLeft.x, sourceTopLeft.y, w1, srcHeight,
-                    0,0, canvasW1, self.canvasElement.height);
-
-            if (w2 >  0) { // in case of wrap-around
-                self.canvasContext.drawImage(self.img,
-                        0, sourceTopLeft.y, w2, srcHeight,
-                        canvasW1,0, canvasW2, self.canvasElement.height);
+            //the target to source projection
+            var proj = Pano.projection.canvasToEquirect(self);
+            var imgData = self.canvasContext.createImageData(self.canvasContext.canvas.width, self.canvasContext.canvas.height);
+            var imgSrc = self.imageDataContext.getImageData(0,0,self.imageDataContext.canvas.width, self.imageDataContext.canvas.height);
+            var width = imgData.width;
+            var height = imgData.height;
+            var srcHeight = imgSrc.height;            
+            var interp = self.interpolator;
+            
+            var idx = 0;
+            var srcPixel = {};
+            for (var y = 0; y < height; y += 1) {
+                for (var x = 0; x < width; x += 1) {
+                    proj(x,y, srcPixel);
+                    interp(imgSrc, srcPixel, imgData, 4*(y*width + x));
+                }
             }
+            self.canvasContext.putImageData(imgData,0,0);
+
             //draw the current target
             if( self.currentTarget ) {
                self.drawCursorOnPosition(self.canvasPixel(self.currentTarget));
@@ -111,13 +199,6 @@ var PanoViewer = function (canvas) {
                                                      zoom: self.pov.zoom,
                                                      hFov: self.hFov(),
                                                      vFov: self.vFov()});
-        },
-        sourceTopLeft : function () {
-            var leftEdgeYaw = self.normalizeX(self.pov.yaw - self.hFov()/2);
-            var sx = (leftEdgeYaw + 180)/self.sourceInfo.degPerSrcPixelX;
-            var topEdgePitch = self.pov.pitch + self.vFov()/2;
-            var sy = (90 - topEdgePitch)/self.sourceInfo.degPerSrcPixelY;
-            return {x: sx,y: sy};
         },
         updatePov : function (newPov) {
             if(newPov) {
@@ -147,20 +228,20 @@ var PanoViewer = function (canvas) {
                 var dyaw = dx*self.currentDegPerCanvasPixelX();
                 var dpitch = dy*self.currentDegPerCanvasPixelY();
                 self.pov.yaw = self.normalizeX(povStart.yaw - dyaw);
-                self.pov.pitch = self.clampY(povStart.pitch + dpitch);
-                self.drawImage();
+                self.pov.pitch = self.clampY(povStart.pitch + dpitch);                
             };
             //.. and the function to remove the mouse-move handler on mouseup or mouseout
-            var removeListeners = function (ev) {
+            var removeListenersAndRedraw = function (ev) {
                 ev.preventDefault();
                 self.canvasElement.removeEventListener('mousemove', moveHandler, false);
-                self.canvasElement.removeEventListener('mouseout', removeListeners, false);
-                self.canvasElement.removeEventListener('mouseup', removeListeners, false);
+                self.canvasElement.removeEventListener('mouseout', removeListenersAndRedraw, false);
+                self.canvasElement.removeEventListener('mouseup', removeListenersAndRedraw, false);
+                self.drawImage();
 
             };
             self.canvasElement.addEventListener('mousemove', moveHandler, false);
-            self.canvasElement.addEventListener('mouseout', removeListeners, false);
-            self.canvasElement.addEventListener('mouseup', removeListeners, false);
+            self.canvasElement.addEventListener('mouseout', removeListenersAndRedraw, false);
+            self.canvasElement.addEventListener('mouseup', removeListenersAndRedraw, false);
 
         },
         onScroll: function (ev) {
@@ -189,25 +270,16 @@ var PanoViewer = function (canvas) {
             return {yaw: yaw, pitch: pitch};
         },
         srcPixel : function (canvasPixel) {
-            var sourceTopLeft = self.sourceTopLeft();
-            var srcX = sourceTopLeft.x + canvasPixel.x / self.pov.zoom;
-            var srcY = sourceTopLeft.y + canvasPixel.y / self.pov.zoom;
-            return {x: srcX, y: srcY};
+            var result = {};
+            var proj = Pano.projection.canvasToEquirect(self);
+            proj(canvasPixel.x, canvasPixel.y, result);
+            return result;
         },
         canvasPixel : function (srcPixel) {
-            var sourceTopLeft = self.sourceTopLeft();
-            //displayable part of source
-            var srcWidth = self.canvasContext.canvas.width / self.pov.zoom;
-            var srcW1 = self.sourceInfo.width - sourceTopLeft.x;
-            var srcW2 = srcWidth - srcW1;
-            if (srcPixel.x < srcW2) {
-                //srcPixel is wrapped around on the canvas
-                var canvasX = (srcW1 + srcPixel.x) * self.pov.zoom;                
-            } else {
-                var canvasX = (srcPixel.x - sourceTopLeft.x) * self.pov.zoom;
-            }
-            var canvasY = (srcPixel.y - sourceTopLeft.y) * self.pov.zoom;
-            return {x: canvasX, y: canvasY};
+            var result = {};
+            var proj = Pano.projection.equirectToCanvas(self);
+            proj(srcPixel.x, srcPixel.y, result);
+            return result;
         },
         registerBearing : function(){
             var moveHandler = function (ev) {
@@ -326,8 +398,11 @@ var PanoViewer = function (canvas) {
     //create the canvas context
     self.canvasElement = canvas;
     if (canvas.getContext) {
-        self.canvasContext = canvas.getContext('2d');
+        self.canvasContext = canvas.getContext('2d');        
+    } else {
+        throw "Not a canvas element"
     }
+    
     canvas.addEventListener('mousedown', self.onMouseDown, false);
     canvas.addEventListener('mousewheel', self.onScroll, false);
     //for FF

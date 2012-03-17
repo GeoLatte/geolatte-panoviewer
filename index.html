@@ -59,7 +59,7 @@
    btn.addEventListener('click', function(ev) { 
       var p = parseFloat(document.getElementById("yaw-form").value);
       var z = parseFloat(document.getElementById("zoom-form").value);
-      viewer.setPov({yaw: p, zoom: z});	
+      viewer.updatePov({yaw: p, zoom: z});	
    });
 				
    viewer.loadImageSrc('panos/5C01K8RM.jpg', {yaw: 90.0});
@@ -80,6 +80,7 @@
       <input id="zoom-form" type="text" value="1.0" name="zoom"/> 
       <input type="button" id="btnUpdate" value="apply" />
    </form>
+
 
    <h3>Image info</h3>
    <ul id="pov">
