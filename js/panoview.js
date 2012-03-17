@@ -72,12 +72,17 @@ Pano.projection = {
 
         
     canvasToEquirect : function(viewer){
-        var leftEdgeYaw = viewer.normalizeX(viewer.pov.yaw - viewer.hFov()/2);
-        var topEdgePitch = viewer.pov.pitch + viewer.vFov()/2;
-        var sx = (leftEdgeYaw + 180)/viewer.sourceInfo.degPerSrcPixelX;            
-        var sy = (90 - topEdgePitch)/viewer.sourceInfo.degPerSrcPixelY;
+
+        var zoom = viewer.pov.zoom;
+        var canvasWidth = viewer.canvasContext.canvas.width;
+        var canvasHeight = viewer.canvasContext.canvas.height;
+        
+        var sx = ((viewer.pov.yaw+180)/viewer.sourceInfo.degPerSrcPixelX -canvasWidth/(2*zoom)) ;
+        var sy = ((90 - viewer.pov.pitch)/viewer.sourceInfo.degPerSrcPixelY - canvasHeight/(2*zoom));
+        
+        
         //displayable part of source
-        var srcWidth = viewer.canvasContext.canvas.width / viewer.pov.zoom;
+        var srcWidth = canvasWidth / viewer.pov.zoom;
         var srcW1 = viewer.sourceInfo.width - sx;
         var srcW2 = srcWidth - srcW1;
         var canvW1 = srcW1 * viewer.pov.zoom;
@@ -95,11 +100,13 @@ Pano.projection = {
         }        
     },
     equirectToCanvas : function(viewer){
-        var leftEdgeYaw = viewer.normalizeX(viewer.pov.yaw - viewer.hFov()/2);
-        var topEdgePitch = viewer.pov.pitch + viewer.vFov()/2;
-        var sx = (leftEdgeYaw + 180)/viewer.sourceInfo.degPerSrcPixelX;            
-        var sy = (90 - topEdgePitch)/viewer.sourceInfo.degPerSrcPixelY;
-        var srcWidth = viewer.canvasContext.canvas.width / viewer.pov.zoom;
+        var zoom = viewer.pov.zoom;
+        var canvasWidth = viewer.canvasContext.canvas.width;
+        var canvasHeight = viewer.canvasContext.canvas.height;
+        
+        var sx = ((viewer.pov.yaw+180)/viewer.sourceInfo.degPerSrcPixelX -canvasWidth/(2*zoom)) ;
+        var sy = ((90 - viewer.pov.pitch)/viewer.sourceInfo.degPerSrcPixelY - canvasHeight/(2*zoom));
+        var srcWidth = canvasWidth / viewer.pov.zoom;
         var srcW1 = viewer.sourceInfo.width - sx;
         var srcW2 = srcWidth - srcW1;
         return function(x,y, projected) {
